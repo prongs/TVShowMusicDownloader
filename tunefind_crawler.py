@@ -15,11 +15,14 @@ def get_youtube_mp3_url(url):
     r = requests.post("http://www.listentoyoutube.com/cc/conversioncloud.php", data={"mediaurl": url, "client_urlmap": "none"})
     statusurl = eval(r.text)['statusurl'].replace('\\/', '/') + "&json"
     while True:
-        resp = eval(requests.get(statusurl).text)
-        if 'downloadurl' in resp:
-            downloadurl = resp['downloadurl'].replace('\\/', '/')
-            break
-        time.sleep(1)
+        try:
+            resp = eval(requests.get(statusurl).text)
+            if 'downloadurl' in resp:
+                downloadurl = resp['downloadurl'].replace('\\/', '/')
+                break
+            time.sleep(1)
+        except Exception:
+            pass
     return downloadurl
 
 
@@ -57,15 +60,15 @@ def get_episode_music(show, season, episode):
     for song in episode_data['songs']:
         song_name = song[2] + " - " + song[1] + ".mp3"
         if not os.path.exists(os.path.join(episode_dir, song_name)):
+            print "queuing %s from %s Season %02d Episode: %s" % (song_name, show, season, episode_name)
             try:
-                print "queuing %s from %s Season %02d Episode: %s" % (song_name, show, season, episode_name)
                 top_vid_id = re.findall(r'<.*?data-context-item-id="(.*?)".*?>', requests.get("http://www.youtube.com/results", params={"search_query": "%s %s" % (song[2], song[1])}).text)[0]
                 mp3_url = get_youtube_mp3_url("http://www.youtube.com/watch?v=" + top_vid_id)
-                cmd = 'idman /d %s /p "%s" /f "%s" /a' % (mp3_url, episode_dir, song_name)
+                cmd = 'idman /d %s /p "%s" /f "%s" /a' % (mp3_url, os.path.join(os.getcwd(), episode_dir), song_name)
                 # print cmd
                 os.system(cmd)
             except:
-                print "Couldn't download %s" % song_name
+                print "Couldn't queue %s" % song_name
     # print episode_data
 
 
